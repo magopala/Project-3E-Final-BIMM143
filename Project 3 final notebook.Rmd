@@ -1,0 +1,90 @@
+---
+title: "PIK3CA allignment"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+_________________________________________________________________________________
+Scientific Question: How does the "Phosphatidylinositol-4,5-Bisphosphate 3-Kinase Catalytic Subunit Alpha" PIK3CA gene compare between humans, mice and electric eels? 
+
+PI3K is an important regulator of signaling pathways involved in cell growth and proliferation (Samuels, 2004). PIK3CA is the catalytic subunit of PI3K. PI3K is also an oncogene that has been identified as a driver of many human cancers. Mutations in the catalytic subunit specifically have been found in primary human cancers (Samuels, 2004). The PI3K gene was found to be upregulated in electrocytes of electric fish (Gallant, 2014). The protein sequences of PIK3CA in humans, mice and electric eels were found from the UniProt database. 
+
+Scientific Hypothesis: If PIK3CA is highly conserved accross species, then it is likely that the amino acid sequence is similar between electric fish and mammals.
+
+Here I perform a multiple sequence alignment in order to identify regions of consensus between the three species as well as regions that differ between the species. Based on the alignment, regions that differ the most are visualized using ggmsa. Identifying which regions align with the human PIK3CA gene may elucidate whether or not investigating the gene in electric eels could have applications to human disease. 
+______________________________________________________________________________
+The following packages were installed and loaded into R studio:
+1) BiocManager: Used to install packages that are compatible with the version of R
+2) Biostrings: Used to read in amino acid sequences for the gene of interest
+4) DECIPHER: Used to install msa() and visualize sequence alignment 
+5) msa: used to align amino acid sequences for the PIK3CA gene in different species
+
+The chuck of code found below shows the commands necessary to install these packages:
+```{r}
+library(BiocManager)
+library(Biostrings)
+library(ggmsa)
+library(DECIPHER)
+library(msa)
+```
+The next chunk of code loads in the amino acid sequences from the uniprot database and reads it in R script
+```{r}
+fas_e <- "https://www.uniprot.org/align/A20210312A94466D2655679D1FD8953E075198DA80093AER.fasta"
+seqs_e <- readAAStringSet(fas_e)
+```
+Next, the sequence is visualized using BrowseSeqs. A multiple sequence alignment of the 3 sequences is performed using the msa function and then written to a FASTA file called "Aligned_PIK3CA_Seq.fasta". Multiple sequence alignment in R works by using the same scoring matrix to perform pairwise alignments of each possible pair of sequences. The multiple sequence alignment then uses the sum of the scores from each pairwise alignment to find the optimum alignment of all the sequences based on the same scoring matrix.  
+```{r}
+BrowseSeqs(seqs_e)
+seqs_e
+msa_e <- msa(seqs_e)
+writeXStringSet(seqs_e, file = "Aligned_PIK3CA_Seq.fasta")
+```
+Finally, based on the alignment, the results are plotted using a heatmap. 
+```{r}
+#set us a vector to use in the for loop below
+x <- c(1,2,3)
+#create an empty matrix to be used to create a heatmap later
+forheatmap <- matrix(nrow=length(x), ncol=length(x))
+#fill the forheatmap matrix above using a nested loop incorporating the aligned sequences
+for (i in x) {
+  for (j in x){
+   #use sequence alignment to define variables
+    string1 <- seqs_e[i]
+    string2 <- seqs_e[j]
+    
+    #turn string 1 into character string
+    dsl = AAStringSetList(string1)
+    as.character(unlist(dsl))
+    cl = as(dsl, "CharacterList")
+    as.list(cl)
+    
+    #turn string 2 into character string
+    dsl2 = AAStringSetList(string2)
+    as.character(unlist(dsl2))
+    cl2 = as(dsl2, "CharacterList")
+    as.list(cl2)
+    
+    #pairwise alignment of the two strings
+    pa2 <- pairwiseAlignment(pattern = c(cl2), subject = cl)
+    
+    #Fill empty matrix with scores from pairwise alignment
+    forheatmap[i,j] <- score(pa2)
+  }
+}
+```
+```{r}
+#Print forheatmap to view scores from pairwise alignment
+forheatmap
+#create heatmap using the forheatmap matrix
+heatmap(forheatmap)
+```
+
+Analysis of results: In this heat plot, sequence 1 is the PIK3CA amino acid sequence from electric eels (E. electricus), sequence 2 is from humans (H. sapien) and sequence 3 is from mice (M. musculus). The heat plot results show that PIK3CA is far more similar in humans and mice compared to electric eels. Although PIK3CA is conserved between the three species, there are significant differences in the amino acid chain of PIK3CA in electric eels that are not found when comparing humans and mice. This disproves my hypothesis that PIK3CA is similar between electric fish and mammals. 
